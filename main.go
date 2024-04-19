@@ -24,13 +24,19 @@ type RequestValues struct {
 	Cent1   int `json:"cent1"`
 }
 
+type RequestValidation struct {
+	TargetValue string `json:"targetValue"`
+}
+
 type RequestPayload struct {
-	PayloadType   int           `json:"payloadType"`
-	RequestValues RequestValues `json:"requestValues"`
+	RequestValidation RequestValidation `json:"requestValidation"`
+	RequestValues     RequestValues     `json:"requestValues"`
+	PayloadType       int               `json:"payloadType"`
 }
 
 type ResponseValues struct {
-	TotalValue string `json:"totalValue"`
+	TotalValue      string `json:"totalValue"`
+	DifferenceValue string `json:"differenceValue"`
 }
 
 type ResponsePayload struct {
@@ -54,32 +60,38 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Received payload: %+v", payload)
 
-	responsePayload := calculateTotalValue(payload.RequestValues)
+	responsePayload := calculateTotalValue(payload)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(responsePayload)
 }
 
-func calculateTotalValue(request RequestValues) ResponsePayload {
-	totalValue := float64(request.Euro200*200) +
-		float64(request.Euro100*100) +
-		float64(request.Euro50*50) +
-		float64(request.Euro20*20) +
-		float64(request.Euro10*10) +
-		float64(request.Euro5*5) +
-		float64(request.Euro2*2) +
-		float64(request.Euro1*1) +
-		float64(request.Cent50)*0.5 +
-		float64(request.Cent20)*0.2 +
-		float64(request.Cent10)*0.1 +
-		float64(request.Cent5)*0.05 +
-		float64(request.Cent2)*0.02 +
-		float64(request.Cent1)*0.01
+func calculateTotalValue(request RequestPayload) ResponsePayload {
+	totalValue := float64(request.RequestValues.Euro200*200) +
+		float64(request.RequestValues.Euro100*100) +
+		float64(request.RequestValues.Euro50*50) +
+		float64(request.RequestValues.Euro20*20) +
+		float64(request.RequestValues.Euro10*10) +
+		float64(request.RequestValues.Euro5*5) +
+		float64(request.RequestValues.Euro2*2) +
+		float64(request.RequestValues.Euro1*1) +
+		float64(request.RequestValues.Cent50)*0.5 +
+		float64(request.RequestValues.Cent20)*0.2 +
+		float64(request.RequestValues.Cent10)*0.1 +
+		float64(request.RequestValues.Cent5)*0.05 +
+		float64(request.RequestValues.Cent2)*0.02 +
+		float64(request.RequestValues.Cent1)*0.01
+
+	targetValueAsFloat, _ := strconv.ParseFloat(request.RequestValidation.TargetValue, 64)
+
+	differenceValue := totalValue - targetValueAsFloat
+
+	differenceValueAsStr := strconv.FormatFloat(differenceValue, 'f', 2, 64)
 
 	valueAsStr := strconv.FormatFloat(totalValue, 'f', 2, 64)
 
-	return ResponsePayload{PayloadType: 2, ResponseValues: ResponseValues{TotalValue: valueAsStr}}
+	return ResponsePayload{PayloadType: 2, ResponseValues: ResponseValues{TotalValue: valueAsStr, DifferenceValue: differenceValueAsStr}}
 }
 
 func main() {
