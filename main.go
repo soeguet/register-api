@@ -67,6 +67,19 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responsePayload)
 }
 
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func calculateTotalValue(request RequestPayload) ResponsePayload {
 	totalValue := float64(request.RequestValues.Euro200*200) +
 		float64(request.RequestValues.Euro100*100) +
@@ -95,7 +108,7 @@ func calculateTotalValue(request RequestPayload) ResponsePayload {
 }
 
 func main() {
-	http.HandleFunc("/calculate", handleRequest)
+	http.HandleFunc("/api/v1/calculate", corsMiddleware(handleRequest))
 	log.Println("Server starting on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
