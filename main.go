@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -70,6 +69,10 @@ type ResponsePayload struct {
 	PayloadType    int            `json:"payloadType"`
 }
 
+func Add(x, y int) int {
+	return x + y
+}
+
 func handlePayload(w http.ResponseWriter, r *http.Request) (RequestPayload, error) {
 	var payload RequestPayload
 	decoder := json.NewDecoder(r.Body)
@@ -113,7 +116,7 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func sumArray(arr []int) int {
+func SumArray(arr []int) int {
 	sum := 0
 	for _, v := range arr {
 		sum += v
@@ -122,42 +125,42 @@ func sumArray(arr []int) int {
 }
 
 func calculateDailyValues(dailyValues RequestValues) float64 {
-	return float64(sumArray(dailyValues.Euro200[:])*200) +
-		float64(sumArray(dailyValues.Euro100[:])*100) +
-		float64(sumArray(dailyValues.Euro50[:])*50) +
-		float64(sumArray(dailyValues.Euro20[:])*20) +
-		float64(sumArray(dailyValues.Euro10[:])*10) +
-		float64(sumArray(dailyValues.Euro5[:])*5) +
-		float64(sumArray(dailyValues.Euro2[:])*2) +
-		float64(sumArray(dailyValues.Euro1[:])*1) +
-		float64(sumArray(dailyValues.Cent50[:]))*0.5 +
-		float64(sumArray(dailyValues.Cent20[:]))*0.2 +
-		float64(sumArray(dailyValues.Cent10[:]))*0.1 +
-		float64(sumArray(dailyValues.Cent5[:]))*0.05 +
-		float64(sumArray(dailyValues.Cent2[:]))*0.02 +
-		float64(sumArray(dailyValues.Cent1[:]))*0.01
+	return float64(SumArray(dailyValues.Euro200[:])*200) +
+		float64(SumArray(dailyValues.Euro100[:])*100) +
+		float64(SumArray(dailyValues.Euro50[:])*50) +
+		float64(SumArray(dailyValues.Euro20[:])*20) +
+		float64(SumArray(dailyValues.Euro10[:])*10) +
+		float64(SumArray(dailyValues.Euro5[:])*5) +
+		float64(SumArray(dailyValues.Euro2[:])*2) +
+		float64(SumArray(dailyValues.Euro1[:])*1) +
+		float64(SumArray(dailyValues.Cent50[:]))*0.5 +
+		float64(SumArray(dailyValues.Cent20[:]))*0.2 +
+		float64(SumArray(dailyValues.Cent10[:]))*0.1 +
+		float64(SumArray(dailyValues.Cent5[:]))*0.05 +
+		float64(SumArray(dailyValues.Cent2[:]))*0.02 +
+		float64(SumArray(dailyValues.Cent1[:]))*0.01
 }
 
 func calculateRollValues(rollValues RollValues) float64 {
-	return float64(sumArray(rollValues.Euro2[:])*2*25) +
-		float64(sumArray(rollValues.Euro1[:])*1*25) +
-		float64(sumArray(rollValues.Cent50[:]))*0.5*40 +
-		float64(sumArray(rollValues.Cent20[:]))*0.2*40 +
-		float64(sumArray(rollValues.Cent10[:]))*0.1*40 +
-		float64(sumArray(rollValues.Cent5[:]))*0.05*50 +
-		float64(sumArray(rollValues.Cent2[:]))*0.02*50 +
-		float64(sumArray(rollValues.Cent1[:]))*0.01*50
+	return float64(SumArray(rollValues.Euro2[:])*2*25) +
+		float64(SumArray(rollValues.Euro1[:])*1*25) +
+		float64(SumArray(rollValues.Cent50[:]))*0.5*40 +
+		float64(SumArray(rollValues.Cent20[:]))*0.2*40 +
+		float64(SumArray(rollValues.Cent10[:]))*0.1*40 +
+		float64(SumArray(rollValues.Cent5[:]))*0.05*50 +
+		float64(SumArray(rollValues.Cent2[:]))*0.02*50 +
+		float64(SumArray(rollValues.Cent1[:]))*0.01*50
 }
 
 func calculateBoxValues(boxValues BoxValues) float64 {
-	return float64(sumArray(boxValues.Euro2[:])*2*3*25) +
-		float64(sumArray(boxValues.Euro1[:])*1*3*25) +
-		float64(sumArray(boxValues.Cent50[:]))*0.5*3*40 +
-		float64(sumArray(boxValues.Cent20[:]))*0.2*3*40 +
-		float64(sumArray(boxValues.Cent10[:]))*0.1*3*40 +
-		float64(sumArray(boxValues.Cent5[:]))*0.05*3*40 +
-		float64(sumArray(boxValues.Cent2[:]))*0.02*5*50 +
-		float64(sumArray(boxValues.Cent1[:]))*0.01*5*50
+	return float64(SumArray(boxValues.Euro2[:])*2*3*25) +
+		float64(SumArray(boxValues.Euro1[:])*1*3*25) +
+		float64(SumArray(boxValues.Cent50[:]))*0.5*3*40 +
+		float64(SumArray(boxValues.Cent20[:]))*0.2*3*40 +
+		float64(SumArray(boxValues.Cent10[:]))*0.1*3*40 +
+		float64(SumArray(boxValues.Cent5[:]))*0.05*3*40 +
+		float64(SumArray(boxValues.Cent2[:]))*0.02*5*50 +
+		float64(SumArray(boxValues.Cent1[:]))*0.01*5*50
 }
 
 func calculateTotalValue(request RequestPayload) ResponsePayload {
