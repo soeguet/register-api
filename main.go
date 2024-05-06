@@ -5,8 +5,31 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
+
+type BoxValues struct {
+	Euro2  [1]int `json:"euro2"`
+	Euro1  [1]int `json:"euro1"`
+	Cent50 [1]int `json:"cent50"`
+	Cent20 [1]int `json:"cent20"`
+	Cent10 [1]int `json:"cent10"`
+	Cent5  [1]int `json:"cent5"`
+	Cent2  [1]int `json:"cent2"`
+	Cent1  [1]int `json:"cent1"`
+}
+
+type RollValues struct {
+	Euro2  [2]int `json:"euro2"`
+	Euro1  [2]int `json:"euro1"`
+	Cent50 [2]int `json:"cent50"`
+	Cent20 [2]int `json:"cent20"`
+	Cent10 [2]int `json:"cent10"`
+	Cent5  [2]int `json:"cent5"`
+	Cent2  [2]int `json:"cent2"`
+	Cent1  [2]int `json:"cent1"`
+}
 
 type RequestValues struct {
 	Euro200 [5]int `json:"euro200"`
@@ -32,6 +55,8 @@ type RequestValidation struct {
 type RequestPayload struct {
 	RequestValidation RequestValidation `json:"requestValidation"`
 	RequestValues     RequestValues     `json:"requestValues"`
+	BoxValues         BoxValues         `json:"boxValues"`
+	RollValues        RollValues        `json:"rollValues"`
 	PayloadType       int               `json:"payloadType"`
 }
 
@@ -45,24 +70,28 @@ type ResponsePayload struct {
 	PayloadType    int            `json:"payloadType"`
 }
 
-func handleRequest(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method is accepted", http.StatusMethodNotAllowed)
-		return
-	}
-
-	fmt.Println("Received request")
-	fmt.Println(r.Body)
+func handlePayload(w http.ResponseWriter, r *http.Request) (RequestPayload, error) {
 	var payload RequestPayload
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&payload)
 	if err != nil {
 		fmt.Println("Error decoding payload")
 		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	return payload, err
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		fmt.Println("Only POST method is accepted")
+		http.Error(w, "Only POST method is accepted", http.StatusMethodNotAllowed)
 		return
 	}
 
-	log.Printf("Received payload: %+v", payload)
+	payload, err := handlePayload(w, r)
+	if err != nil {
+		return
+	}
 
 	responsePayload := calculateTotalValue(payload)
 
@@ -84,7 +113,7 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func sumArray(arr [5]int) int {
+func sumArray(arr []int) int {
 	sum := 0
 	for _, v := range arr {
 		sum += v
@@ -92,35 +121,71 @@ func sumArray(arr [5]int) int {
 	return sum
 }
 
-func calculateTotalValue(request RequestPayload) ResponsePayload {
-	totalValue := float64(sumArray(request.RequestValues.Euro200)*200) +
-		float64(sumArray(request.RequestValues.Euro100)*100) +
-		float64(sumArray(request.RequestValues.Euro50)*50) +
-		float64(sumArray(request.RequestValues.Euro20)*20) +
-		float64(sumArray(request.RequestValues.Euro10)*10) +
-		float64(sumArray(request.RequestValues.Euro5)*5) +
-		float64(sumArray(request.RequestValues.Euro2)*2) +
-		float64(sumArray(request.RequestValues.Euro1)*1) +
-		float64(sumArray(request.RequestValues.Cent50))*0.5 +
-		float64(sumArray(request.RequestValues.Cent20))*0.2 +
-		float64(sumArray(request.RequestValues.Cent10))*0.1 +
-		float64(sumArray(request.RequestValues.Cent5))*0.05 +
-		float64(sumArray(request.RequestValues.Cent2))*0.02 +
-		float64(sumArray(request.RequestValues.Cent1))*0.01
+func calculateDailyValues(dailyValues RequestValues) float64 {
+	return float64(sumArray(dailyValues.Euro200[:])*200) +
+		float64(sumArray(dailyValues.Euro100[:])*100) +
+		float64(sumArray(dailyValues.Euro50[:])*50) +
+		float64(sumArray(dailyValues.Euro20[:])*20) +
+		float64(sumArray(dailyValues.Euro10[:])*10) +
+		float64(sumArray(dailyValues.Euro5[:])*5) +
+		float64(sumArray(dailyValues.Euro2[:])*2) +
+		float64(sumArray(dailyValues.Euro1[:])*1) +
+		float64(sumArray(dailyValues.Cent50[:]))*0.5 +
+		float64(sumArray(dailyValues.Cent20[:]))*0.2 +
+		float64(sumArray(dailyValues.Cent10[:]))*0.1 +
+		float64(sumArray(dailyValues.Cent5[:]))*0.05 +
+		float64(sumArray(dailyValues.Cent2[:]))*0.02 +
+		float64(sumArray(dailyValues.Cent1[:]))*0.01
+}
 
+func calculateRollValues(rollValues RollValues) float64 {
+	return float64(sumArray(rollValues.Euro2[:])*2*25) +
+		float64(sumArray(rollValues.Euro1[:])*1*25) +
+		float64(sumArray(rollValues.Cent50[:]))*0.5*40 +
+		float64(sumArray(rollValues.Cent20[:]))*0.2*40 +
+		float64(sumArray(rollValues.Cent10[:]))*0.1*40 +
+		float64(sumArray(rollValues.Cent5[:]))*0.05*50 +
+		float64(sumArray(rollValues.Cent2[:]))*0.02*50 +
+		float64(sumArray(rollValues.Cent1[:]))*0.01*50
+}
+
+func calculateBoxValues(boxValues BoxValues) float64 {
+	return float64(sumArray(boxValues.Euro2[:])*2*3*25) +
+		float64(sumArray(boxValues.Euro1[:])*1*3*25) +
+		float64(sumArray(boxValues.Cent50[:]))*0.5*3*40 +
+		float64(sumArray(boxValues.Cent20[:]))*0.2*3*40 +
+		float64(sumArray(boxValues.Cent10[:]))*0.1*3*40 +
+		float64(sumArray(boxValues.Cent5[:]))*0.05*3*40 +
+		float64(sumArray(boxValues.Cent2[:]))*0.02*5*50 +
+		float64(sumArray(boxValues.Cent1[:]))*0.01*5*50
+}
+
+func calculateTotalValue(request RequestPayload) ResponsePayload {
+	// calculate intermediate values
+	totalValue := calculateDailyValues(request.RequestValues)
+	boxValues := calculateBoxValues(request.BoxValues)
+	rollValues := calculateRollValues(request.RollValues)
 	targetValueAsFloat, _ := strconv.ParseFloat(request.RequestValidation.TargetValue, 64)
 
-	differenceValue := totalValue - targetValueAsFloat
+	// calculate diff value
+	differenceValue := totalValue + boxValues + rollValues - targetValueAsFloat
 
+	// convert to strings
 	differenceValueAsStr := strconv.FormatFloat(differenceValue, 'f', 2, 64)
+	valueAsStr := strconv.FormatFloat(totalValue+boxValues+rollValues, 'f', 2, 64)
 
-	valueAsStr := strconv.FormatFloat(totalValue, 'f', 2, 64)
-
-	return ResponsePayload{PayloadType: 2, ResponseValues: ResponseValues{TotalValue: valueAsStr, DifferenceValue: differenceValueAsStr}}
+	// response
+	return ResponsePayload{
+		PayloadType: 2,
+		ResponseValues: ResponseValues{
+			TotalValue:      valueAsStr,
+			DifferenceValue: differenceValueAsStr,
+		},
+	}
 }
 
 func main() {
 	http.HandleFunc("/api/v1/calculate", corsMiddleware(handleRequest))
-	log.Println("Server starting on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Server starting on port 8002...")
+	log.Fatal(http.ListenAndServe(":8002", nil))
 }
