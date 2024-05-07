@@ -73,7 +73,7 @@ func Add(x, y int) int {
 	return x + y
 }
 
-func handlePayload(w http.ResponseWriter, r *http.Request) (RequestPayload, error) {
+func HandlePayload(w http.ResponseWriter, r *http.Request) (RequestPayload, error) {
 	var payload RequestPayload
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&payload)
@@ -91,7 +91,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := handlePayload(w, r)
+	payload, err := HandlePayload(w, r)
 	if err != nil {
 		return
 	}
@@ -100,7 +100,10 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(responsePayload)
+	err = json.NewEncoder(w).Encode(responsePayload)
+	if err != nil {
+		return
+	}
 }
 
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -124,7 +127,7 @@ func SumArray(arr []int) int {
 	return sum
 }
 
-func calculateDailyValues(dailyValues RequestValues) float64 {
+func CalculateDailyValues(dailyValues RequestValues) float64 {
 	return float64(SumArray(dailyValues.Euro200[:])*200) +
 		float64(SumArray(dailyValues.Euro100[:])*100) +
 		float64(SumArray(dailyValues.Euro50[:])*50) +
@@ -141,7 +144,7 @@ func calculateDailyValues(dailyValues RequestValues) float64 {
 		float64(SumArray(dailyValues.Cent1[:]))*0.01
 }
 
-func calculateRollValues(rollValues RollValues) float64 {
+func CalculateRollValues(rollValues RollValues) float64 {
 	return float64(SumArray(rollValues.Euro2[:])*2*25) +
 		float64(SumArray(rollValues.Euro1[:])*1*25) +
 		float64(SumArray(rollValues.Cent50[:]))*0.5*40 +
@@ -152,26 +155,19 @@ func calculateRollValues(rollValues RollValues) float64 {
 		float64(SumArray(rollValues.Cent1[:]))*0.01*50
 }
 
-func calculateBoxValues(boxValues BoxValues) float64 {
+func CalculateBoxValues(boxValues BoxValues) float64 {
 	return float64(SumArray(boxValues.Euro2[:])*2*3*25) +
 		float64(SumArray(boxValues.Euro1[:])*1*3*25) +
 		float64(SumArray(boxValues.Cent50[:]))*0.5*3*40 +
 		float64(SumArray(boxValues.Cent20[:]))*0.2*3*40 +
 		float64(SumArray(boxValues.Cent10[:]))*0.1*3*40 +
-		float64(SumArray(boxValues.Cent5[:]))*0.05*3*40 +
+		float64(SumArray(boxValues.Cent5[:]))*0.05*3*50 +
 		float64(SumArray(boxValues.Cent2[:]))*0.02*5*50 +
 		float64(SumArray(boxValues.Cent1[:]))*0.01*5*50
 }
 
 func calculateTotalValue(request RequestPayload) ResponsePayload {
-	// calculate intermediate values
-	totalValue := calculateDailyValues(request.RequestValues)
-	boxValues := calculateBoxValues(request.BoxValues)
-	rollValues := calculateRollValues(request.RollValues)
-	targetValueAsFloat, _ := strconv.ParseFloat(request.RequestValidation.TargetValue, 64)
-
-	// calculate diff value
-	differenceValue := totalValue + boxValues + rollValues - targetValueAsFloat
+	totalValue, boxValues, rollValues, differenceValue := CalculateValuesForCashCounts(request)
 
 	// convert to strings
 	differenceValueAsStr := strconv.FormatFloat(differenceValue, 'f', 2, 64)
@@ -185,6 +181,18 @@ func calculateTotalValue(request RequestPayload) ResponsePayload {
 			DifferenceValue: differenceValueAsStr,
 		},
 	}
+}
+
+func CalculateValuesForCashCounts(request RequestPayload) (float64, float64, float64, float64) {
+	// calculate intermediate values
+	totalValue := CalculateDailyValues(request.RequestValues)
+	boxValues := CalculateBoxValues(request.BoxValues)
+	rollValues := CalculateRollValues(request.RollValues)
+	targetValueAsFloat, _ := strconv.ParseFloat(request.RequestValidation.TargetValue, 64)
+
+	// calculate diff value
+	differenceValue := totalValue + boxValues + rollValues - targetValueAsFloat
+	return totalValue, boxValues, rollValues, differenceValue
 }
 
 func main() {
