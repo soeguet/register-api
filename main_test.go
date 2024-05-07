@@ -7,15 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestAdd tests the Add function
-func TestAdd(t *testing.T) {
-	got := Add(1, 2)
-	want := 3
-	if got != want {
-		t.Errorf("Add(1, 2) = %d; want %d", got, want)
-	}
-}
-
 func TestSumArray(t *testing.T) {
 	got := SumArray([]int{1, 2, 3, 4, 5})
 	want := 15
@@ -297,8 +288,8 @@ func TestCalculateTotalValue(t *testing.T) {
 			},
 			expected: ResponsePayload{
 				ResponseValues: ResponseValues{
-					TotalValue:      "0.00",
-					DifferenceValue: "0.00",
+					TotalValue:      "0,00",
+					DifferenceValue: "0,00",
 				},
 				PayloadType: 2,
 			},
@@ -331,8 +322,8 @@ func TestCalculateTotalValue(t *testing.T) {
 			},
 			expected: ResponsePayload{
 				ResponseValues: ResponseValues{
-					TotalValue:      "100.00",
-					DifferenceValue: "50.00",
+					TotalValue:      "100,00",
+					DifferenceValue: "50,00",
 				},
 				PayloadType: 2,
 			},
@@ -344,6 +335,57 @@ func TestCalculateTotalValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := calculateTotalValue(tt.input)
 			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
+func TestFormatNumber(t *testing.T) {
+	tests := []struct {
+		name  string
+		input float64
+		want  string
+	}{
+		{
+			name:  "Zero",
+			input: 0,
+			want:  "0,00",
+		},
+		{
+			name:  "Twenty",
+			input: 20,
+			want:  "20,00",
+		},
+		{
+			name:  "PositiveWithoutDigits",
+			input: 123456,
+			want:  "123.456,00",
+		},
+		{
+			name:  "PositiveWithDigits",
+			input: 123456.78,
+			want:  "123.456,78",
+		},
+		{
+			name:  "NegativeWithoutDigits",
+			input: -123456,
+			want:  "-123.456,00",
+		},
+		{
+			name:  "NegativeWithDigits",
+			input: -123456.78,
+			want:  "-123.456,78",
+		},
+		{
+			name:  "UnderOne",
+			input: 0.78,
+			want:  "0,78",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FormatNumber(tt.input); got != tt.want {
+				t.Errorf("FormatNumber() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
